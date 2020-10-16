@@ -3,7 +3,10 @@
 #define DOT11_H
 #include <stdint.h>
 #include <stdio.h>
+#include <string>
+#include <vector>
 
+using namespace std;
 
 #pragma pack(push,1)
 
@@ -37,10 +40,16 @@ struct beacon_fixed
     uint16_t interval;
     uint16_t capab;
 
-    uint8_t ssid_num;
-    uint8_t ssid_len;
 
 };
+
+struct ssid
+{
+    uint8_t ssid_num;
+    uint8_t ssid_len;
+    //vector<uint8_t> essid;
+};
+
 
 
 

@@ -16,7 +16,7 @@ void usage(){
 int main(int argc, char *argv[])
 {
 
-    using namespace std;
+    //using namespace std;
     if(argc!=2){
         usage();
         return -1;
@@ -53,11 +53,22 @@ int main(int argc, char *argv[])
     uint8_t *target = dot11->bssid;
 
 
+
    vector<uint8_t> temp;
+   vector<uint8_t> name;
    for(int i=0;i<6;i++)
        temp.push_back(*(target+i));
    cnt++;
    if(!ap_list.insert(temp).second) continue;
+
+        struct ssid *size_ptr= (struct ssid *)(packet+rd->len+sizeof(struct dot11_header)+sizeof(struct beacon_fixed));
+
+        uint8_t size = size_ptr->ssid_len;
+
+        for(int i=0;i<size;i++){
+
+            name.push_back(*((uint8_t *)(packet+rd->len+sizeof(dot11_header)+sizeof(struct beacon_fixed)+2+i)));
+        }
 
 
 
@@ -65,12 +76,13 @@ int main(int argc, char *argv[])
 
     for(int i=0;i<5;i++)
         printf("%02x:",dot11->bssid[i]);
-    printf("%02x\n",dot11->bssid[5]);
-
-
-
-
+    printf("%02x",dot11->bssid[5]);
+    printf("                                                         ");
+    for(auto i=name.begin();i<name.end();i++)
+        printf("%c",(*i));
+    printf("\n");
     }
+
 
     printf("total AP : %ld\n",ap_list.size());
 /*
