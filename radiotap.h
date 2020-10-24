@@ -9,7 +9,20 @@ struct radiotap
   uint8_t version;
   uint8_t pad;
   uint16_t len;
-  uint32_t present;
+  uint32_t present1;
+  uint32_t present2;
+  uint32_t present3;
+  uint8_t flag;
+  uint8_t data_rate;
+  uint16_t ch_frq;
+  uint16_t ch_flag;
+  uint8_t signal;
+  uint16_t qual;
+  uint16_t rx_flag;
+  uint8_t ant_signal1;
+  uint8_t ant1;
+  uint8_t ant_signal2;
+  uint8_t ant2;
 
   /*
   uint8_t time[8];

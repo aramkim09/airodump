@@ -20,6 +20,7 @@ struct ap{
     //vector<uint8_t> bssid;
     vector<uint8_t> essid;
     uint8_t beacon;
+    int8_t pwr;
 };
 
 
@@ -73,6 +74,7 @@ int main(int argc, char *argv[])
        cnt++;
        if(!ap_list.insert(temp).second) {ap_ls.find(temp)->second.beacon++; continue;}
 
+
        struct ssid *size_ptr= (struct ssid *)(packet+rd->len+sizeof(struct dot11_header)+sizeof(struct beacon_fixed));
 
        uint8_t size = size_ptr->ssid_len;
@@ -84,6 +86,8 @@ int main(int argc, char *argv[])
        struct ap temp_ap;
        temp_ap.beacon=1;
        temp_ap.essid=name;
+       temp_ap.pwr=-((~(rd->signal)+1)&0x000000FF);
+       //printf("%d\n",temp_ap.pwr);
        ap_ls.insert({temp,temp_ap});
 
 
@@ -119,8 +123,8 @@ int main(int argc, char *argv[])
              for(int j=0;j<5;j++)
                  printf("%02x:",i->first[j]);
              printf("%02x",i->first[5]);
-             printf("       ");
-             printf("%7d",i->second.beacon);
+             printf("  %3d",i->second.pwr);
+             printf("  %7d",i->second.beacon);
              printf("                                           ");
              for(auto k=i->second.essid.begin();k<i->second.essid.end();k++)
                   printf("%c",(*k));
