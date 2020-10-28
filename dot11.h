@@ -51,9 +51,17 @@ struct ssid
 };
 
 
+struct ap{
 
+    //vector<uint8_t> bssid;
+    vector<uint8_t> essid;
+    uint8_t beacon;
+    int8_t pwr;
+    uint8_t essid_len;
+};
 
-
+uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int num);
+uint8_t* make_deauth(vector<uint8_t> mac,uint8_t *size);
 
 #pragma pack(pop)
 #endif // DOT11_H

