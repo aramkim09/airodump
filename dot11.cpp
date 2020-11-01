@@ -19,11 +19,11 @@ uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int n
     struct dot11_header beacon_header;
 
 
-    for(int i=0;i<6;i++){
+    /*for(int i=0;i<6;i++){
         beacon_header.bssid[i]=mac.at(i);
-        beacon_header.sour[i]=mac.at(i);}
-    //memset(beacon_header.sour,0x11,6);
-    //memset(beacon_header.bssid,0x11,6);
+        beacon_header.sour[i]=mac.at(i);}*/
+    memset(beacon_header.sour,0x11,6);
+    memset(beacon_header.bssid,0x11,6);
     memset(beacon_header.dest,0xFF,6);
     beacon_header.duration=0x0000;
     beacon_header.seq=0x0000;
@@ -47,8 +47,8 @@ uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int n
 
     struct ssid beacon_ssid;
     beacon_ssid.ssid_num=0;
-    //beacon_ssid.ssid_len=select.essid_len+2;
-    beacon_ssid.ssid_len=select.essid_len;
+    beacon_ssid.ssid_len=select.essid_len+2;
+    //beacon_ssid.ssid_len=select.essid_len;
 
     const int size = beacon_ssid.ssid_len;
 
@@ -59,8 +59,8 @@ uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int n
         ssid[temp++]=*i;
     }
 
-    //ssid[temp++]=0x2d;
-    //ssid[temp]=48+num;
+    ssid[temp++]=0x2d;
+    ssid[temp]=48+num;
 
 
     *(pk_size)=beacon_radio.len+sizeof(struct dot11_header)+sizeof(struct beacon_fixed)+sizeof(beacon_ssid)+size;
