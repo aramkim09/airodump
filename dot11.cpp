@@ -124,11 +124,11 @@ uint8_t* make_deauth(vector<uint8_t> mac,uint8_t* size){
     memcpy(packet+deauth_radio.len+sizeof(struct dot11_header),(uint8_t*)&reason_code,sizeof(uint16_t));
 
 
-
+/*
     for(int i=0;i<pk_size;i++)
         printf("%02x",*(packet+i));
     printf("\n");
-
+*/
 
     *size= pk_size;
 

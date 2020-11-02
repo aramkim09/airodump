@@ -8,6 +8,7 @@
 #include <map>
 #include <unistd.h>
 #include <thread>
+#include <time.h>
 
 
 void usage(){
@@ -182,27 +183,33 @@ int main(int argc, char *argv[])
         uint8_t *deauth=make_deauth(sel_mac,(uint8_t*)&deauth_size);
 
 
-
+        time_t start,end;
+        start=time(NULL);
         thread attack = thread(thread_attack,handle,deauth,deauth_size);
         thread scan = thread(thread_scan,handle,&attack_defense,&scan_run,sel_mac);
 
         attack.join();
-        if(!attack.joinable()) scan_run=false;
+        if((!attack.joinable())&&(scan.joinable())) scan_run=false;
         scan.join();
+        end=time(NULL);
 
         system("clear");
+        printf("                               ");
         printf("------------------Select------------------\n");
-        printf("             ");
+        printf("                                            ");
         for(int j=0;j<5;j++) printf("%02x:",sel_mac[j]);
         printf("%02x\n",sel_mac[5]);
-        printf("             ");
+        printf("                                            ");
         printf("ESSID:");
         for(auto k=sel_ap.essid.begin();k<sel_ap.essid.end();k++) printf("%c",(*k));
         printf("\n");
-
+        printf("                               ");
         printf("------------------Result------------------\n");
-        printf("             ");
-        printf("deauth defense : %d\n",attack_defense);
+        printf("                                            ");
+        printf("Total time : %f\n",(double)end-start);
+        printf("                                            ");
+        printf("Deauth defense : %d\n",attack_defense);
+        printf("                               ");
         printf("------------------------------------------\n");
 
 
@@ -240,6 +247,19 @@ void thread_scan(pcap_t* handle,bool *attack,bool *run,vector<uint8_t> sel){
            if(target[i]!=sel[i]) {is_continue=true;break;}}
         if(is_continue)continue;
         if((dot11->fc.type!=1) || (dot11->fc.subtype!=11)) continue;
+
+        /*
+        printf("find!!\n");
+
+        for(int i=0;i<6;i++)
+            printf("%02x",*(target+i));
+        printf("\n");
+
+        int pk_size=rd->len + sizeof(dot11->fc)+sizeof(dot11->dest)+sizeof(dot11->duration)+sizeof(dot11->sour);
+        for(int i=0;i<pk_size;i++)
+            printf("%02x",*(packet+i));
+        printf("\n");
+        */
 
         if(++pk_cnt>5){*attack=true;break;}
     }
