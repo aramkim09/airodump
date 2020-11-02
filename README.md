@@ -6,4 +6,4 @@
 g++ -o airodump main.cpp dot11.cpp -lpcap -pthread
 
 # execution
-./airodump <interface>
+./airodump <<interface>>
