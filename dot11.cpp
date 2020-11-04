@@ -47,8 +47,8 @@ uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int n
 
     struct ssid beacon_ssid;
     beacon_ssid.ssid_num=0;
-    //beacon_ssid.ssid_len=select.essid_len+2;
-    beacon_ssid.ssid_len=select.essid_len;
+    beacon_ssid.ssid_len=select.essid_len+2;
+    //beacon_ssid.ssid_len=select.essid_len;
 
     const int size = beacon_ssid.ssid_len;
 
@@ -59,8 +59,8 @@ uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int n
         ssid[temp++]=*i;
     }
 
-    //ssid[temp++]=0x2d;
-    //ssid[temp]=48+num;
+    ssid[temp++]=0x2d;
+    ssid[temp]=48+num;
 
 
     *(pk_size)=beacon_radio.len+sizeof(struct dot11_header)+sizeof(struct beacon_fixed)+sizeof(beacon_ssid)+size;
@@ -72,9 +72,10 @@ uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int n
     memcpy(packet+beacon_radio.len+sizeof(struct dot11_header)+sizeof(struct beacon_fixed),(uint8_t*)&beacon_ssid,sizeof(struct ssid));
     memcpy(packet+beacon_radio.len+sizeof(struct dot11_header)+sizeof(struct beacon_fixed)+sizeof(struct ssid),(uint8_t*)ssid,size);
 
+    /*
     for(int i=0;i<*pk_size;i++)
         printf("%02x",*(packet+i));
-    printf("\n");
+    printf("\n");*/
 
     return packet;
 
@@ -124,11 +125,11 @@ uint8_t* make_deauth(vector<uint8_t> mac,uint8_t* size){
     memcpy(packet+deauth_radio.len+sizeof(struct dot11_header),(uint8_t*)&reason_code,sizeof(uint16_t));
 
 
-
+/*
     for(int i=0;i<pk_size;i++)
         printf("%02x",*(packet+i));
     printf("\n");
-
+*/
 
     *size= pk_size;
 

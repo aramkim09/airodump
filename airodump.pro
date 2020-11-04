@@ -20,4 +20,5 @@ HEADERS += \
     dot11.h \
     radiotap.h
 
-LIBS += -lpcap
+LIBS += -lpcap \
+    -pthread
