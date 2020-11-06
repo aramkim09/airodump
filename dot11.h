@@ -56,6 +56,7 @@ struct ap{
     //vector<uint8_t> bssid;
     vector<uint8_t> essid;
     uint8_t beacon;
+    uint8_t channel;
     int8_t pwr;
     uint8_t essid_len;
 };

