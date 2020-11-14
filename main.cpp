@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
     printf("                               ");
     printf("    [3] Beacon Flooding \n");
     printf("                               ");
-    printf("    [4] ARP Spoofing \n");
+    printf("    [4] ARP Pollution \n");
     printf("                               ");
     printf("    [5] Exit \n");
     printf("                               ");
