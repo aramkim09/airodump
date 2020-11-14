@@ -1,6 +1,6 @@
 # airodump
-![image](https://user-images.githubusercontent.com/61967756/98335880-2cb9af00-2049-11eb-91ae-90e4f8f1d992.png)
-![image](https://user-images.githubusercontent.com/61967756/98335891-317e6300-2049-11eb-94aa-87e44bebca54.png)
+![image](https://user-images.githubusercontent.com/61967756/99147864-8e23f280-26c7-11eb-91c5-2987126bfd22.png)
+![image](https://user-images.githubusercontent.com/61967756/99147869-97ad5a80-26c7-11eb-8c24-d558fb5e00c2.png)
 # Usage
 g++ -o airodump main.cpp dot11.cpp -lpcap -pthread  
 ./airodump wlan0 
