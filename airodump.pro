@@ -18,6 +18,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     dot11.h \
+    ethernet.h \
     radiotap.h
 
 LIBS += -lpcap \

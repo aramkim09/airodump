@@ -61,6 +61,13 @@ struct ap{
     uint8_t essid_len;
 };
 
+struct station{
+
+    uint8_t mac[6];
+    uint8_t ip[4];
+
+};
+
 uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int num);
 uint8_t* make_deauth(vector<uint8_t> mac,uint8_t *size);
 
