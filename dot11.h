@@ -42,6 +42,13 @@ struct beacon_fixed
 
 
 };
+struct reasso_fixed
+{
+    uint8_t timestamp[8];
+    uint16_t interval;
+    uint16_t capab;
+};
+
 
 struct ssid
 {
@@ -59,6 +66,8 @@ struct ap{
     uint8_t channel;
     int8_t pwr;
     uint8_t essid_len;
+    uint8_t enc;
+    uint8_t cipher;
 };
 
 struct station{
@@ -69,7 +78,9 @@ struct station{
 };
 
 uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int num);
+uint8_t* make_reasso(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int num);
 uint8_t* make_deauth(vector<uint8_t> mac,uint8_t *size);
+uint8_t* make_disasso(vector<uint8_t> mac,uint8_t *size);
 
 #pragma pack(pop)
 #endif // DOT11_H
