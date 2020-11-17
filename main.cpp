@@ -630,8 +630,8 @@ void print_station(map<vector<uint8_t>,vector<uint8_t>> arp){
              printf("%02x",i->first[5]);
              printf("          ");
              for(int j=0;j<3;j++)
-                 printf("%02x.",i->second[j]);
-             printf("%02x",i->second[3]);
+                 printf("%d.",i->second[j]);
+             printf("%d",i->second[3]);
 
              printf("\n");
 
@@ -1099,7 +1099,7 @@ void send_rarp(vector<uint8_t> &sel_mac,vector<uint8_t> &sel_ip,vector<uint8_t> 
            int res = pcap_next_ex(handle, &header, &pack);
            if (res == 0) continue;
            if (res == -1 || res == -2) break;
-           if(time(NULL)-start>5) break;
+           if(time(NULL)-start>5) {arp_defense=true;break;}
 
 
            eth_ping_rep = (struct libnet_ethernet_hdr *)pack;
