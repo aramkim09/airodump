@@ -34,6 +34,31 @@ struct arp_hdr {
     uint8_t h_dst[6];
     uint8_t ip_dst[4];
 };
+
+struct ipv4_hdr{
+    unsigned int hdr_len : 4;
+    unsigned int version : 4;
+
+    uint8_t tos;
+    uint16_t total_len;
+    uint16_t ident;
+    //unsigned int flag : 3;
+    //unsigned int frg_offset : 13 ;
+    uint16_t fragment;
+    uint8_t ttl;
+    uint8_t proto_type;
+    uint16_t hdr_checksum;
+    uint8_t ip_src[4];
+    uint8_t ip_dst[4];
+};
+struct icmp_hdr{
+    uint8_t type;
+    uint8_t code;
+    uint16_t checksum;
+    uint16_t identif;
+    uint16_t seq_num;
+};
+
 #pragma pack(pop)
 
 #endif // ETHERNET_H

@@ -30,6 +30,7 @@ void usage(){
     printf("sample: airodump wlan0\n");
 }
 
+void help_intro();
 void scan(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,struct ap> &ap_ls);
 void print_ap(set<vector<uint8_t>> ap_list,map<vector<uint8_t>,struct ap> ap_ls);
 void select(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,struct ap> &ap_ls,vector<uint8_t> &sel_mac,struct ap &sel_ap);
@@ -40,7 +41,7 @@ void select_station(pcap_t* handle,vector<uint8_t> &sel_mac,map<vector<uint8_t>,
 void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac);
 void exe_beacon(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap);
 void exe_arp(pcap_t* handle,vector<uint8_t> &sel_mac);
-void exe_fake(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap);
+void exe_fake(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap, map<vector<uint8_t>,struct ap> ap_ls);
 void exe_disasso(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap);
 void exe_reasso(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap);
 
@@ -52,7 +53,9 @@ void get_local_mac(struct ifreq *v);
 
 void find_ip(vector<uint8_t> &sel_mac,vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip);
 void set_ip(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_ip);
-void send_rarp(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip);
+void send_rarp(vector<uint8_t> &sel_mac,vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip);
+
+uint16_t in_cksum(uint16_t *addr, unsigned int len);
 
 int main(int argc, char *argv[])
 {
@@ -88,12 +91,13 @@ int main(int argc, char *argv[])
         system(cmdbuf2);
     }
 
-    /* option
-    char cmdbuf3[256];
+
+/*
     else if(strcmp(temp,"Monitor") == 0){
+        char cmdbuf3[256];
         sprintf(cmdbuf3, "iwconfig %s mode monitor && ip link set %s up", dev, dev);
-        system(cmdbuf3);
-    }*/
+        system(cmdbuf3);}*/
+
 
 
     pcap_t* handle = pcap_open_live(dev,BUFSIZ,1,1000,errbuf);
@@ -131,6 +135,8 @@ int main(int argc, char *argv[])
     printf("                               ");
     printf("-------------------Menu-------------------\n");
     printf("                               ");
+    printf("    [0] Help (Usage Introduction) \n");
+    printf("                               ");
     printf("    [1] Rescan \n");
     printf("                               ");
     printf("    [2] Fake AP \n");
@@ -161,9 +167,9 @@ int main(int argc, char *argv[])
     */
 
     switch (menu_nr) {
-
+        case 0 : help_intro(); break;
         case 1 : select(handle,ap_list,ap_ls,sel_mac,sel_ap);break;
-        case 2 : exe_fake(handle,sel_mac,sel_ap);break;
+        case 2 : exe_fake(handle,sel_mac,sel_ap, ap_ls);break;
         case 3 : exe_arp(handle,sel_mac);break;
         case 4 : exe_beacon(handle,sel_mac,sel_ap);break;
         case 5 : exe_deauth(handle,sel_mac);break;
@@ -183,8 +189,10 @@ int main(int argc, char *argv[])
 void scan(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,struct ap> &ap_ls){
 
     int cnt=0;
+    time_t start=time(NULL);
        while(true){
            if(cnt==50) break;
+           if(time(NULL)-start>5) break;
            struct pcap_pkthdr* header;
            const u_char* packet;
            int res = pcap_next_ex(handle,&header,&packet);
@@ -288,13 +296,12 @@ void scan(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,struc
 }
 
 void print_ap(set<vector<uint8_t>> ap_list,map<vector<uint8_t>,struct ap> ap_ls){
-
-    printf("      BSSID             PWR   Beacons  #Data, #/s  CH   MB    ENC     CIPHER  AUTH ESSID  \n");
-
+    printf("---------------------------------------------------------------------------------------------------------------\n");
+        printf("      BSSID            PWR    Beacons  #Data, #/s  CH   MB    ENC     CIPHER  AUTH ESSID  \n");
+        int dcnt=0; //danger count
         int num=1;
         int cnt = 0;
-        for(auto i=ap_ls.begin();i!=ap_ls.end();i++)
-               {
+        for(auto i=ap_ls.begin();i!=ap_ls.end();i++){
                  if(cnt<9)
                     printf(" [%d] ", num++);
                  else
@@ -304,12 +311,17 @@ void print_ap(set<vector<uint8_t>> ap_list,map<vector<uint8_t>,struct ap> ap_ls)
                  for(int j=0;j<5;j++)
                      printf("%02x:",i->first[j]);
                  printf("%02x",i->first[5]);
+
+
+
                  printf("  %3d",i->second.pwr);
                  printf("  %7d",i->second.beacon);
                  printf("              %3d",i->second.channel);
               //   cout << i->second.enc;
-                 if(i->second.enc == 0)
+                 if(i->second.enc == 0){
                      printf("%13s", "OPN ");
+                     dcnt++;
+                 }
                  else if(i->second.enc == 1)
                      printf("%13s", "WEP ");
                  else if(i->second.enc == 2)
@@ -333,8 +345,66 @@ void print_ap(set<vector<uint8_t>> ap_list,map<vector<uint8_t>,struct ap> ap_ls)
                       printf("%c",(*k));
                  printf("\n");
 
-               }
-            printf("total AP : %ld\n",ap_list.size());
+            }
+
+            if(dcnt >0){
+
+                cnt =-1;
+                num = 0;
+                printf("Dangerous AP List ---------------------------------------------------------------------------------------------\n");
+                printf("      BSSID            PWR    Beacons  #Data, #/s  CH   MB    ENC     CIPHER  AUTH ESSID  \n");
+                for(auto i=ap_ls.begin();i!=ap_ls.end();i++){
+                        cnt++;
+                        num++;
+                        if(i->second.enc != 0)
+                            continue;
+                        if(cnt<9)
+                            printf(" [%d] ", num);
+                         else
+                            printf("[%d] ", num);
+
+
+                         for(int j=0;j<5;j++)
+                             printf("%02x:",i->first[j]);
+                         printf("%02x",i->first[5]);
+
+
+
+                         printf("  %3d",i->second.pwr);
+                         printf("  %7d",i->second.beacon);
+                         printf("              %3d",i->second.channel);
+
+                      //   cout << i->second.enc;
+                         if(i->second.enc == 0){
+                             printf("%13s", "OPN ");
+                         }
+                         else if(i->second.enc == 1)
+                             printf("%13s", "WEP ");
+                         else if(i->second.enc == 2)
+                             printf("%13s", "WPA ");
+                         else if(i->second.enc == 3)
+                             printf("%13s", "WPA2");
+
+                         if(i->second.cipher == 1)
+                             printf("%9s", "  WEP-40");
+                         else if(i->second.cipher == 2)
+                             printf("%9s", "  TKIP");
+                         else if(i->second.cipher == 4)
+                             printf("%9s", "  CCMP");
+                         else if(i->second.cipher == 5)
+                             printf("%9s", "  WEP-104");
+                         else if(i->second.cipher == 0)
+                             printf("%9s", "  - ");
+
+                         printf("        ");
+                         for(auto k=i->second.essid.begin();k<i->second.essid.end();k++)
+                              printf("%c",(*k));
+                         printf("\n");
+                    }
+                printf("---------------------------------------------------------------------------------------------------------------\n");
+            }
+
+            printf("\n");
 
 }
 
@@ -477,9 +547,11 @@ void select(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,str
 void scan_station(pcap_t* handle,vector<uint8_t> &sel_mac,map<vector<uint8_t>,vector<uint8_t>> &arp){
 
     int cnt=0;
+    //printf("scanning..");
+    time_t start=time(NULL);
     while(true){
         if(cnt==3) break;
-        printf("scanning\n");
+        if(time(NULL)-start>5) break;
         struct pcap_pkthdr* header;
         const u_char* packet;
         int res = pcap_next_ex(handle,&header,&packet);
@@ -574,7 +646,7 @@ void select_station(pcap_t* handle,vector<uint8_t> &sel_mac,map<vector<uint8_t>,
     while(true){
         //arp.clear();
         scan_station(handle,sel_mac,arp);
-        system("clear");
+        //system("clear");
 
 
 
@@ -616,7 +688,7 @@ void exe_arp(pcap_t* handle,vector<uint8_t> &sel_mac){
     while(true){
 
         printf("                               ");
-        printf("--------------------AP---------------------\n");
+        printf("--------------------AP--------------------\n");
         printf("                                            ");
         for(int j=0;j<5;j++) printf("%02x:",sel_mac[j]);
         printf("%02x\n",sel_mac[5]);
@@ -626,7 +698,7 @@ void exe_arp(pcap_t* handle,vector<uint8_t> &sel_mac){
 
 
         printf("                               ");
-        printf("------------------Station------------------\n");
+        printf("------------------Station-----------------\n");
         printf("                                            ");
         for(int j=0;j<5;j++) printf("%02x:",sel_st_mac[j]);
         printf("%02x\n",sel_st_mac[5]);
@@ -661,7 +733,7 @@ void exe_arp(pcap_t* handle,vector<uint8_t> &sel_mac){
         switch (menu_nr) {
 
             case 1 : select_station(handle,sel_mac,arp,sel_st_mac,sel_st_ip);break;
-            case 2 : send_rarp(sel_ip,sel_st_mac,sel_st_ip);break;
+            case 2 : send_rarp(sel_mac,sel_ip,sel_st_mac,sel_st_ip);break;
             case 3 : find_ip(sel_mac,sel_ip,sel_st_mac,sel_st_ip);break;
             case 4 : set_ip(sel_ip,sel_st_ip);break;
             case 5 : return;
@@ -675,7 +747,7 @@ void exe_arp(pcap_t* handle,vector<uint8_t> &sel_mac){
 
 void set_ip(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_ip){
     string ap_ip;
-    printf("AP IP : ");
+    printf("AP IP(xx.xx.xx.xx): ");
     cin.ignore();
     getline(cin,ap_ip,'\n');
 
@@ -702,7 +774,7 @@ void set_ip(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_ip){
     }
 
 
-    printf("Station IP : ");
+    printf("Station IP(xx.xx.xx.xx): ");
     getline(cin,st_ip,'\n');
     previous = 0;
     current = st_ip.find('.');
@@ -874,7 +946,7 @@ void find_ip(vector<uint8_t> &sel_mac,vector<uint8_t> &sel_ip,vector<uint8_t> &s
 
 
 
-void send_rarp(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip){
+void send_rarp(vector<uint8_t> &sel_mac,vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip){
 
     int cnt=0;
     for(int i=0;i<4;i++){if(sel_st_ip[i]==0x11)cnt++;}
@@ -891,6 +963,7 @@ void send_rarp(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_
     /*get local mac*/
     struct ifreq s;
     get_local_mac(&s);
+    uint8_t local_mac[6];
 
 
     /*get local ip*/
@@ -902,66 +975,183 @@ void send_rarp(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_
     /*make reply packet*/
 
 
-       struct libnet_ethernet_hdr r_ehdr;
-       struct arp_hdr r_ahdr;
+    struct libnet_ethernet_hdr r_ehdr;
+    struct arp_hdr r_ahdr;
 
 
-       for(int i=0;i<6;i++)
-           r_ehdr.ether_shost[i]=s.ifr_addr.sa_data[i];
-       for(int i=0;i<6;i++){
-           r_ehdr.ether_dhost[i]=0xff;
-       }//local mac
-       r_ehdr.ether_type=htons(ARP);
+    for(int i=0;i<6;i++)
+        r_ehdr.ether_shost[i]=s.ifr_addr.sa_data[i];
+    for(int i=0;i<6;i++){
+        r_ehdr.ether_dhost[i]=0xff;
+    }//local mac
+    r_ehdr.ether_type=htons(ARP);
 
-       r_ahdr.htype=htons(ETH);
-       r_ahdr.ptype=htons(IPv4);
-       r_ahdr.hlen=HLEN;
-       r_ahdr.plen=PLEN;
-       r_ahdr.opcode=htons(REP);
+    r_ahdr.htype=htons(ETH);
+    r_ahdr.ptype=htons(IPv4);
+    r_ahdr.hlen=HLEN;
+    r_ahdr.plen=PLEN;
+    r_ahdr.opcode=htons(REP);
 
-       printf("\nARP - SOURCE MAC ");
-       for(int i=0;i<6;i++){
-           r_ahdr.h_src[i]=s.ifr_addr.sa_data[i];
-           printf("%02x ",r_ahdr.h_src[i]);
-               }//Local mac
+    printf("\nARP - SOURCE MAC ");
+    for(int i=0;i<6;i++){
+        local_mac[i]=s.ifr_addr.sa_data[i];
+        r_ahdr.h_src[i]=local_mac[i];
+        printf("%02x ",r_ahdr.h_src[i]);
+    }//Local mac
 
-       printf("\nARP - SOURCE IP ");
-       for(int i=0;i<4;i++){
-           r_ahdr.ip_src[i]=sel_ip[i];
-           printf("%d. ",r_ahdr.ip_src[i]);
-             }//AP ip
+    printf("\nARP - SOURCE IP ");
+    for(int i=0;i<4;i++){
+        r_ahdr.ip_src[i]=sel_ip[i];
+        printf("%d. ",r_ahdr.ip_src[i]);
+    }//AP ip
 
-       printf("\nARP - DST MAC ");
-       for(int i=0;i<6;i++){
-           r_ahdr.h_dst[i]=sel_st_mac[i];
-           printf("%02x ",r_ahdr.h_dst[i]);
-                   }//station mac
+    printf("\nARP - DST MAC ");
+    for(int i=0;i<6;i++){
+        r_ahdr.h_dst[i]=sel_st_mac[i];
+        printf("%02x ",r_ahdr.h_dst[i]);
+    }//station mac
 
-       printf("\nARP - DST IP ");
-       for(int i=0;i<4;i++){
-           r_ahdr.ip_dst[i]=sel_st_ip[i];
-           printf("%d. ",r_ahdr.ip_dst[i]);
-                   }//station IP */
+    printf("\nARP - DST IP ");
+    for(int i=0;i<4;i++){
+        r_ahdr.ip_dst[i]=sel_st_ip[i];
+        printf("%d. ",r_ahdr.ip_dst[i]);
+    }//station IP */
 
-       /*send reply packet*/
-
-
-        //printf("\nSend ARP Reply Packet\n");
-
-        u_char* packet2;
-        int packet_size = sizeof(struct libnet_ethernet_hdr)+sizeof(struct arp_hdr);
-
-        packet2 = (u_char *)malloc(sizeof(u_char) * packet_size);
-        memcpy(packet2, &r_ehdr, sizeof(struct libnet_ethernet_hdr));
-        memcpy(packet2 + sizeof(struct libnet_ethernet_hdr), &r_ahdr, sizeof(struct arp_hdr));
+    /*send reply packet*/
 
 
+   //printf("\nSend ARP Reply Packet\n");
 
-        for(int i=0;i<5;i++)
-        {if (pcap_sendpacket(handle, packet2, packet_size) != 0) printf("\nsend packet Error \n");usleep(5000);}
-        printf("\n>>Send ARP Reply<<\n");
+   u_char* arp_rep_packet;
+   int packet_size = sizeof(struct libnet_ethernet_hdr)+sizeof(struct arp_hdr);
+
+   arp_rep_packet = (u_char *)malloc(sizeof(u_char) * packet_size);
+   memcpy(arp_rep_packet, &r_ehdr, sizeof(struct libnet_ethernet_hdr));
+   memcpy(arp_rep_packet + sizeof(struct libnet_ethernet_hdr), &r_ahdr, sizeof(struct arp_hdr));
 
 
+
+   for(int i=0;i<5;i++)
+    {if (pcap_sendpacket(handle, arp_rep_packet, packet_size) != 0) printf("\nsend packet Error \n");usleep(5000);}
+   printf("\n>>Send ARP Reply<<\n");
+
+   /*make ping request*/
+
+   struct libnet_ethernet_hdr p_ehdr;
+   struct ipv4_hdr p_ip_hdr;
+   struct icmp_hdr p_icmp_hdr;
+
+   for(int i=0;i<6;i++){
+
+       p_ehdr.ether_shost[i]=local_mac[i];
+    }
+   for(int i=0;i<6;i++){
+       p_ehdr.ether_dhost[i]=sel_st_mac[i];
+   }
+   p_ehdr.ether_type=htons(IPv4);
+
+   p_ip_hdr.version=4;
+   p_ip_hdr.hdr_len=5;
+   p_ip_hdr.tos=0;
+   p_ip_hdr.ident=0x7878;
+   p_ip_hdr.fragment=htons(0x4000);
+   p_ip_hdr.ttl=64;
+   p_ip_hdr.proto_type=1;
+   p_ip_hdr.hdr_checksum=0;
+   for(int i=0;i<4;i++)
+    p_ip_hdr.ip_src[i]=sel_ip[i];
+   for(int i=0;i<4;i++)
+    p_ip_hdr.ip_dst[i]=sel_st_ip[i];
+
+
+   p_icmp_hdr.type=8;
+   p_icmp_hdr.code=0;
+   p_icmp_hdr.identif=0x7878;
+   p_icmp_hdr.seq_num=0x7878;
+
+
+   p_icmp_hdr.checksum=in_cksum((uint16_t *)&p_icmp_hdr, sizeof(struct icmp_hdr));
+   p_ip_hdr.total_len=htons(sizeof(p_ip_hdr)+sizeof(p_icmp_hdr));
+   p_ip_hdr.hdr_checksum=in_cksum((uint16_t *)&p_ip_hdr, sizeof(ipv4_hdr));
+
+
+   u_char* ping_req_packet;
+   int ping_packet_size = sizeof(struct libnet_ethernet_hdr)+sizeof(struct ipv4_hdr)+sizeof(icmp_hdr);
+
+   ping_req_packet = (uint8_t *)malloc(sizeof(uint8_t) * ping_packet_size);
+   memcpy(ping_req_packet, &p_ehdr, sizeof(struct libnet_ethernet_hdr));
+   memcpy(ping_req_packet + sizeof(struct libnet_ethernet_hdr), &p_ip_hdr, sizeof(struct ipv4_hdr));
+   memcpy(ping_req_packet + sizeof(struct libnet_ethernet_hdr)+sizeof(struct ipv4_hdr), &p_icmp_hdr, sizeof(struct icmp_hdr));
+
+   if (pcap_sendpacket(handle, ping_req_packet, ping_packet_size) != 0) {printf("\nsend packet Error \n");}
+
+   struct libnet_ethernet_hdr *eth_ping_rep;
+   struct ipv4_hdr* ipv4_ping_rep;
+   struct icmp_hdr* icmp_ping_rep;
+   bool arp_defense=false;
+   time_t start;
+
+   start=time(NULL);
+   while(true) {
+
+           struct pcap_pkthdr* header;
+           const u_char* pack;
+           int res = pcap_next_ex(handle, &header, &pack);
+           if (res == 0) continue;
+           if (res == -1 || res == -2) break;
+           if(time(NULL)-start>5) break;
+
+
+           eth_ping_rep = (struct libnet_ethernet_hdr *)pack;
+           if(ntohs(eth_ping_rep->ether_type)!=IPv4) continue;
+           int check=0;
+           for(int i=0;i<6;i++){
+               if(eth_ping_rep->ether_shost[i]!=sel_st_mac[i]){break;}
+               check++;
+           }
+           printf("\n");
+           if(check!=6) continue;
+
+
+           ipv4_ping_rep = (struct ipv4_hdr *)(pack + sizeof(struct libnet_ethernet_hdr));
+           if(ipv4_ping_rep->proto_type!=1) continue;
+           check=0;
+           for(int i=0;i<4;i++){
+               if(ipv4_ping_rep->ip_src[i]!=sel_st_ip[i]){break;}
+               check++;
+           }
+           if(check!=4) continue;;
+           check=0;
+           for(int i=0;i<4;i++){
+               if(ipv4_ping_rep->ip_dst[i]!=sel_ip[i]){break;}
+               check++;
+           }
+           if(check!=4) continue;
+
+
+           icmp_ping_rep = (struct icmp_hdr *)(pack + sizeof(struct libnet_ethernet_hdr)+sizeof(struct ipv4_hdr));
+           if((ntohs(icmp_ping_rep->code)!=0)||(ntohs(icmp_ping_rep->type)!=0)) continue;
+           printf("Ping Reply Packet received\n");
+
+
+
+           check=0;
+           for(int i=0;i<6;i++){
+               if(eth_ping_rep->ether_dhost[i]!=local_mac[i]){break;}
+               check++;
+           }
+           if(check!=6) arp_defense=true;
+           break;
+   }
+   string a;
+   if(arp_defense) a ="defensive";
+   else a="not defensive";
+
+   system("clear");
+   printf("                               ");
+   printf("------------------Result------------------\n");
+   printf("                                       ");
+   printf("ARP defense : %s\n",a.c_str());
 
 
 
@@ -1006,47 +1196,87 @@ void get_local_ip(u_char *l){
 
 }
 
-void exe_fake(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap){
+void exe_fake(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap, map<vector<uint8_t>,struct ap> ap_ls){
     int risk = 0;
+        // duplicate test
+        int temp = -1;
+        // BSSID
+        string str1(sel_ap.essid.begin(), sel_ap.essid.end());
 
-    // BSSID
-    string str1(sel_ap.essid.begin(), sel_ap.essid.end());
-
-    //list
-    vector<string> list;
-    list.push_back("KT_GiGA");
-    list.push_back("KT_WLAN");
-    list.push_back("U+Net");
-    list.push_back("iptime");
-    list.push_back("SK_WiFi");
-    list.push_back("Galaxy");
-    list.push_back("TP-Link");
-    list.push_back("Series");
-    list.push_back("telecop");
-    list.push_back("Free");
-    list.push_back("free");
-    list.push_back("Xiaomi");
+        //list
+        vector<string> list;
+        list.push_back("KT_GiGA");
+        list.push_back("KT_WLAN");
+        list.push_back("U+Net");
+        list.push_back("iptime");
+        list.push_back("SK_WiFi");
+        list.push_back("Galaxy");
+        list.push_back("TP-Link");
+        list.push_back("Series");
+        list.push_back("telecop");
+        list.push_back("Free");
+        list.push_back("free");
+        list.push_back("Xiaomi");
 
 
 
-    for(int i=0; i<list.size(); i++){
-        int test = str1.find(list[i]);
-        if(test>=0 && test<100){
-            risk++;
-            break;
+        // risk test 1 : no password
+        if(sel_ap.cipher==0)  // no password
+            risk += 10;
+        else if(sel_ap.cipher==0) // wep
+            risk += 2;
+
+
+        // risk test 2 : suspicious name
+        for(int i=0; i<list.size(); i++){
+            int test = str1.find(list[i]);
+            if(test>=0 && test<100){
+                risk += 2;
+                temp = i;
+                break;
+            }
         }
-    }
-    cout << "Risk Level testing..." << endl;
-    usleep(1000000);
 
-    cout << "Fake AP Risk : ";
+        // risk test 3 : duplicate nearby names
+        if(temp!=-1){
+            cout << "Risk Name : " << list[temp] << endl;
+            cout << "-------List of Duplicate Names -------" << endl;
 
-    if(risk == 0)
-        cout << "Low" << endl;
-    else if(risk == 1)
-        cout << "Medium" << endl;
-    else if(risk == 2)
-        cout << "High" << endl;
+            int cnt = 0;
+            for(auto j=ap_ls.begin(); j!=ap_ls.end(); j++){
+                string testStr(j->second.essid.begin(), j->second.essid.end());
+                int test = testStr.find(list[temp]);
+                if(test>=0 && test<100){ // text finding
+                    cnt++;
+                    cout << testStr << endl;
+                }
+            }
+            cout << "--------------------------------------" << endl;
+
+        if(cnt>=5)
+            risk += 3;
+        else if(cnt>=3)
+            risk += 2;
+        else if(cnt>=2)
+            risk += 1;
+        }
+
+
+        // risk print
+        cout << "Risk Level testing..." << endl;
+        usleep(1000000);
+
+        cout << "Fake AP Risk Score : " << risk << endl;
+        cout << "Fake AP Risk Rating : ";
+
+        if(risk >= 13)
+            cout << "Very High" << endl;
+        else if(risk >= 10)
+            cout << "High" << endl;
+        else if(risk >= 5)
+            cout << "Medium" << endl;
+        else
+            cout << "Low" << endl;
 
 }
 
@@ -1102,3 +1332,54 @@ void exe_reasso(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap){
      if(i%1000==0) printf("~reasso Flooding~\n");
     }
 }
+
+uint16_t in_cksum(uint16_t *addr, unsigned int len)
+{
+  uint16_t answer = 0;
+
+  uint32_t sum = 0;
+  while (len > 1)  {
+    sum += *addr++;
+    len -= 2;
+  }
+
+  if (len == 1) {
+    *(unsigned char *)&answer = *(unsigned char *)addr ;
+    sum += answer;
+  }
+
+  sum = (sum >> 16) + (sum & 0xffff);
+  sum += (sum >> 16);
+  //answer=sum^0xffff;
+  answer = (~sum&0xffff);
+  return answer;
+}
+
+void help_intro(){
+    static const char intro[]=
+            "\n\n\n\n\n\n"
+            "Wireless AP diagnostic tool - Version 1.0 (2020)\n"
+            "Team - 234567.\n\n"
+            "usage : airodump <interface>\n\n\n"
+            "First, select ap to diagnose and proceed.\n"
+            "Second, select the attack menu to be diagnosed.\n\n"
+            "Options - Number selection \n"
+            "\t[0] Help(Usage introduction)\t : Describes the attack menu to be diagnosed.\n"
+            "\t[1] Rescan\t\t\t : rescan and reselect ap\n"
+            "\t[2] Fake AP\t\t\t : The probability that the selected ap is a fake ap is judged as a risk rating.\n"
+            "\t\t\t\t\t   * Whether to judge - password, ESSID name, ESSID duplicate\n"
+            "\t[3] ARP Pollution : Among the stations connected to the selected ap, Find a station where arp spoofing can proceed.\n"
+            "\t\t\t\t\t   * ARP Spoofing - arp spoofing is a man-in-the-middle attack technique that uses\n"
+            "\t\t\t\t\t     messages to intercept data packets from other parties.\n"
+            "\t[4] Beacon Flooding\t\t : A beacon packet is transmitted by generating a random MAC address including\n"
+            "\t\t\t\t\t   the same SSID and channel number as the selected AP. It is possible to determine\n"
+            "\t\t\t\t\t   whether the selected AP can be attacked by Beacon Flooding.\n"
+            "\t[5] Deauth Attack & Checking\t : Diagnose by checking if deauth attack is possible against the selected AP.\n"
+            "\t[6] Disasso Attack & Checking\t : Diagnose by checking if deauth attack is possible against the selected AP.\n"
+            "\t[7] Resasso Attack & Checking\t : Diagnose by checking if deauth attack is possible against the selected AP.\n"
+            "\t[8] Exit\t\t\t : Exit the diagnostic program\n"
+            "\n\n\n\n\n\n";
+    cout << intro << endl;
+}
+
+
