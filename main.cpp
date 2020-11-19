@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 
         //system("clear");
         static const char intro[]=
-                "\n\n"
+                ""
                 "                                  "
                 " _           _     _   _ _____ _____ \n"
                 "                                  "
@@ -449,9 +449,9 @@ void thread_scan(pcap_t* handle,bool *attack,bool *run,vector<uint8_t> sel){
 
     uint8_t pk_cnt=0;
     sleep(5);
-    printf("scan start\n");
+    //printf("scan start\n");
     while(*run){
-        printf("scanning\n");
+        //printf("scanning\n");
         struct pcap_pkthdr* header;
         const u_char* packet;
         int res = pcap_next_ex(handle,&header,&packet);
@@ -490,7 +490,7 @@ void thread_attack(pcap_t* handle,uint8_t *packet,uint8_t packet_size){
     for(int i=0;i<500000;i++){
              if(i%100==0) {
                  if (pcap_sendpacket(handle, packet, packet_size) != 0) printf("\nsend packet Error \n");
-                 printf("send packet %d\n", i);
+                 //printf("send packet %d\n", i);
                  usleep(5000);
              }
        }
@@ -509,6 +509,7 @@ void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac){
 
 
     time_t start,end;
+    printf("Deauth testing..(for 30s)\n");
     start=time(NULL);
     thread attack = thread(thread_attack,handle,deauth,deauth_size);
     thread scan = thread(thread_scan,handle,&attack_defense,&scan_run,sel_mac);
@@ -530,7 +531,7 @@ void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac){
     printf("                                      ");
     printf("Deauth defense : %s\n",a.c_str());
     printf("                               ");
-    printf("------------------------------------------\n\n\n");
+    printf("------------------------------------------\n");
 
 
 }
@@ -1332,6 +1333,7 @@ void exe_disasso(pcap_t* handle,vector<uint8_t> sel_mac){
 
     //thread_attack --> pcap_sendpacket(handle, packet, packet_size)
     time_t start,end;
+    printf("Disassociation testing..(for 30s)\n");
     start=time(NULL);
     thread attack = thread(thread_attack,handle,disasso,disasso_size);
     thread scan = thread(thread_scan,handle,&attack_defense,&scan_run,sel_mac);
@@ -1354,7 +1356,7 @@ void exe_disasso(pcap_t* handle,vector<uint8_t> sel_mac){
     printf("                                     ");
     printf("Disasso defense : %s\n",a.c_str());
     printf("                               ");
-    printf("------------------------------------------\n\n\n");
+    printf("------------------------------------------\n");
 
 
 }
