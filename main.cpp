@@ -42,7 +42,7 @@ void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac);
 void exe_beacon(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap);
 void exe_arp(pcap_t* handle,vector<uint8_t> &sel_mac);
 void exe_fake(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap, map<vector<uint8_t>,struct ap> ap_ls);
-void exe_disasso(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap);
+void exe_disasso(pcap_t* handle,vector<uint8_t> sel_mac);
 void exe_reasso(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap);
 
 void thread_scan(pcap_t* handle,bool *attack,bool *run,vector<uint8_t> sel);
@@ -53,7 +53,7 @@ void get_local_mac(struct ifreq *v);
 
 void find_ip(vector<uint8_t> &sel_mac,vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip);
 void set_ip(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_ip);
-void send_rarp(vector<uint8_t> &sel_mac,vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip);
+void send_rarp(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip);
 
 uint16_t in_cksum(uint16_t *addr, unsigned int len);
 
@@ -65,6 +65,24 @@ int main(int argc, char *argv[])
         usage();
         return -1;
     }
+
+    /* Start interface */
+    /*
+    system("clear");
+    static const char intro[]=
+            "\n\n"
+            "                                  "
+            " _           _     _   _ _____ _____ \n"
+            "                                  "
+            "| |__   ___ | |__ | \\ | | ____|_   _|\n"
+            "                                  "
+            "| '_ \\ / _ \\| '_ \\|  \\| |  _|   | |  \n"
+            "                                  "
+            "| |_) | (_) | |_) | |\\  | |___  | | \n"
+            "                                  "
+            "|_.__/ \\___/|_.__/|_| \\_|_____| |_| \n";
+    cout << intro << endl;*/
+
 
    /* interface open */
 
@@ -114,10 +132,27 @@ int main(int argc, char *argv[])
     vector<uint8_t> sel_mac;
     struct ap sel_ap;
 
+    sleep(3);
+
 
     select(handle,ap_list,ap_ls,sel_mac,sel_ap);
 
     while(true){
+
+        //system("clear");
+        static const char intro[]=
+                "\n\n"
+                "                                  "
+                " _           _     _   _ _____ _____ \n"
+                "                                  "
+                "| |__   ___ | |__ | \\ | | ____|_   _|\n"
+                "                                  "
+                "| '_ \\ / _ \\| '_ \\|  \\| |  _|   | |  \n"
+                "                                  "
+                "| |_) | (_) | |_) | |\\  | |___  | | \n"
+                "                                  "
+                "|_.__/ \\___/|_.__/|_| \\_|_____| |_| \n";
+        cout << intro << endl;
 
     printf("                               ");
     printf("------------------Select------------------\n");
@@ -173,7 +208,7 @@ int main(int argc, char *argv[])
         case 3 : exe_arp(handle,sel_mac);break;
         case 4 : exe_beacon(handle,sel_mac,sel_ap);break;
         case 5 : exe_deauth(handle,sel_mac);break;
-        case 6 : exe_disasso(handle,sel_mac,sel_ap);break;
+        case 6 : exe_disasso(handle,sel_mac);break;
         case 7 : exe_reasso(handle,sel_mac,sel_ap);break;
         case 8 : return 0;
         default: continue;
@@ -296,7 +331,8 @@ void scan(pcap_t* handle,set<vector<uint8_t>> &ap_list,map<vector<uint8_t>,struc
 }
 
 void print_ap(set<vector<uint8_t>> ap_list,map<vector<uint8_t>,struct ap> ap_ls){
-    printf("---------------------------------------------------------------------------------------------------------------\n");
+    system("clear");
+    printf("\n---------------------------------------------------------------------------------------------------------------\n");
         printf("      BSSID            PWR    Beacons  #Data, #/s  CH   MB    ENC     CIPHER  AUTH ESSID  \n");
         int dcnt=0; //danger count
         int num=1;
@@ -401,8 +437,9 @@ void print_ap(set<vector<uint8_t>> ap_list,map<vector<uint8_t>,struct ap> ap_ls)
                               printf("%c",(*k));
                          printf("\n");
                     }
-                printf("---------------------------------------------------------------------------------------------------------------\n");
+
             }
+            printf("---------------------------------------------------------------------------------------------------------------\n");
 
             printf("\n");
 
@@ -444,7 +481,7 @@ void thread_scan(pcap_t* handle,bool *attack,bool *run,vector<uint8_t> sel){
         printf("\n");
         */
 
-        if(++pk_cnt>5){*attack=true;break;}
+        if(++pk_cnt>2){*attack=true;break;}
     }
 }
 
@@ -481,15 +518,21 @@ void exe_deauth(pcap_t* handle,vector<uint8_t> sel_mac){
     scan.join();
     end=time(NULL);
 
+    string a;
+    if(attack_defense) a ="defensive";
+    else a="not defensive";
+
     system("clear");
-    printf("                               ");
+    printf("\n\n                               ");
     printf("------------------Result------------------\n");
-    printf("                                            ");
+    printf("                                         ");
     printf("Total time : %f\n",(double)end-start);
-    printf("                                            ");
-    printf("Deauth defense : %d\n",attack_defense);
+    printf("                                      ");
+    printf("Deauth defense : %s\n",a.c_str());
     printf("                               ");
-    printf("------------------------------------------\n");
+    printf("------------------------------------------\n\n\n");
+
+
 }
 void exe_beacon(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap){
     uint8_t beacon1_size;
@@ -733,7 +776,7 @@ void exe_arp(pcap_t* handle,vector<uint8_t> &sel_mac){
         switch (menu_nr) {
 
             case 1 : select_station(handle,sel_mac,arp,sel_st_mac,sel_st_ip);break;
-            case 2 : send_rarp(sel_mac,sel_ip,sel_st_mac,sel_st_ip);break;
+            case 2 : send_rarp(sel_ip,sel_st_mac,sel_st_ip);break;
             case 3 : find_ip(sel_mac,sel_ip,sel_st_mac,sel_st_ip);break;
             case 4 : set_ip(sel_ip,sel_st_ip);break;
             case 5 : return;
@@ -946,7 +989,7 @@ void find_ip(vector<uint8_t> &sel_mac,vector<uint8_t> &sel_ip,vector<uint8_t> &s
 
 
 
-void send_rarp(vector<uint8_t> &sel_mac,vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip){
+void send_rarp(vector<uint8_t> &sel_ip,vector<uint8_t> &sel_st_mac,vector<uint8_t> &sel_st_ip){
 
     int cnt=0;
     for(int i=0;i<4;i++){if(sel_st_ip[i]==0x11)cnt++;}
@@ -1280,7 +1323,7 @@ void exe_fake(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap, map<vecto
 
 }
 
-void exe_disasso(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap){
+void exe_disasso(pcap_t* handle,vector<uint8_t> sel_mac){
 
     bool attack_defense=false;
     bool scan_run=true;
@@ -1298,38 +1341,40 @@ void exe_disasso(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap){
     scan.join();
     end=time(NULL);
 
+    string a;
+    if(attack_defense) a ="defensive";
+    else a="not defensive";
+
     system("clear");
-    printf("                               ");
-    printf("------------------Select------------------\n");
-    printf("                                            ");
-    for(int j=0;j<5;j++) printf("%02x:",sel_mac[j]);
-    printf("%02x\n",sel_mac[5]);
-    printf("                                            ");
-    printf("ESSID:");
-    for(auto k=sel_ap.essid.begin();k<sel_ap.essid.end();k++) printf("%c",(*k));
-    printf("\n");
-    printf("                               ");
+
+    printf("\n\n                               ");
     printf("------------------Result------------------\n");
-    printf("                                            ");
+    printf("                                         ");
     printf("Total time : %f\n",(double)end-start);
-    printf("                                            ");
-    printf("Disasso defense : %d\n",attack_defense);
+    printf("                                     ");
+    printf("Disasso defense : %s\n",a.c_str());
     printf("                               ");
-    printf("------------------------------------------\n");
+    printf("------------------------------------------\n\n\n");
+
 
 }
 
 void exe_reasso(pcap_t* handle,vector<uint8_t> sel_mac,struct ap sel_ap){
     uint8_t reasso_size;
+    /*
     uint8_t *reasso1=make_reasso(sel_mac,sel_ap,(uint8_t*)&reasso_size,1);
     uint8_t *reasso2=make_reasso(sel_mac,sel_ap,(uint8_t*)&reasso_size,2);
-    uint8_t *reasso3=make_reasso(sel_mac,sel_ap,(uint8_t*)&reasso_size,3);
+    uint8_t *reasso3=make_reasso(sel_mac,sel_ap,(uint8_t*)&reasso_size,3);*/
+    uint8_t *reasso1=make_reasso2(sel_mac,sel_ap,(uint8_t*)&reasso_size);
+    uint8_t *reasso2=make_reasso2(sel_mac,sel_ap,(uint8_t*)&reasso_size);
+    uint8_t *reasso3=make_reasso2(sel_mac,sel_ap,(uint8_t*)&reasso_size);
+    printf("~reasso Flooding~\n");
 
     for(int i=0;i<1000000;i++){
      if (pcap_sendpacket(handle, reasso1, reasso_size) != 0) printf("\nsend packet Error \n");
      if (pcap_sendpacket(handle, reasso2, reasso_size) != 0) printf("\nsend packet Error \n");
      if (pcap_sendpacket(handle, reasso3, reasso_size) != 0) printf("\nsend packet Error \n");
-     if(i%1000==0) printf("~reasso Flooding~\n");
+
     }
 }
 

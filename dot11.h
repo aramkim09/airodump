@@ -48,7 +48,13 @@ struct reasso_fixed
     uint16_t interval;
     uint16_t capab;
 };
+struct reasso_fixed2
+{
+    uint16_t capab;
+    uint16_t interval;
+    uint8_t current[6];
 
+};
 
 struct ssid
 {
@@ -79,6 +85,7 @@ struct station{
 
 uint8_t* make_beacon(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int num);
 uint8_t* make_reasso(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int num);
+uint8_t* make_reasso2(vector<uint8_t> mac,struct ap select,uint8_t* pk_size);
 uint8_t* make_deauth(vector<uint8_t> mac,uint8_t *size);
 uint8_t* make_disasso(vector<uint8_t> mac,uint8_t *size);
 

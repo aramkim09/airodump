@@ -266,3 +266,79 @@ uint8_t* make_reasso(vector<uint8_t> mac,struct ap select,uint8_t* pk_size,int n
 
 
 }
+
+uint8_t* make_reasso2(vector<uint8_t> mac,struct ap select,uint8_t* pk_size){
+
+    uint8_t *packet;
+    struct radiotap reasso_radio;
+    reasso_radio.version=0;
+    reasso_radio.pad=0;
+    reasso_radio.len=8;
+    reasso_radio.present=0;
+
+
+    struct dot11_header reasso_header;
+
+
+    for(int i=0;i<6;i++){
+        reasso_header.bssid[i]=mac.at(i);
+        reasso_header.sour[i]=mac.at(i);}
+
+    memset(reasso_header.dest,0xFF,6);
+    reasso_header.duration=0x0000;
+    reasso_header.seq=0x0000;
+
+    reasso_header.fc.protver=0;
+    reasso_header.fc.type=0;
+    reasso_header.fc.subtype=0x2;
+    reasso_header.fc.tods=0;
+    reasso_header.fc.fromds=0;
+    reasso_header.fc.moref=0;
+    reasso_header.fc.retry=0;
+    reasso_header.fc.power=0;
+    reasso_header.fc.mored=0;
+    reasso_header.fc.wep=0;
+    reasso_header.fc.rsvd=0;
+
+    struct reasso_fixed2 reasso_body;
+
+    reasso_body.interval=0;
+    reasso_body.capab=0;
+    for(int i=0;i<6;i++){
+        reasso_body.current[i]=mac.at(i);}
+
+    struct ssid beacon_ssid;
+    beacon_ssid.ssid_num=0;
+
+    beacon_ssid.ssid_len=select.essid_len;
+
+    const int size = beacon_ssid.ssid_len;
+
+    uint8_t ssid[size];
+    int temp=0;
+    for(auto i=select.essid.begin();i!=select.essid.end();i++)
+           {
+        ssid[temp++]=*i;
+    }
+
+
+
+
+    *(pk_size)=reasso_radio.len+sizeof(struct dot11_header)+sizeof(struct reasso_fixed2)+sizeof(beacon_ssid)+size;
+    packet=(uint8_t*)malloc(sizeof(uint8_t)*(*pk_size));
+
+    memcpy(packet,(uint8_t*)&reasso_radio,reasso_radio.len);
+    memcpy(packet+reasso_radio.len,(uint8_t*)&reasso_header,sizeof(struct dot11_header));
+    memcpy(packet+reasso_radio.len+sizeof(struct dot11_header),(uint8_t*)&reasso_body,sizeof(struct reasso_fixed2));
+    memcpy(packet+reasso_radio.len+sizeof(struct dot11_header)+sizeof(struct reasso_fixed2),(uint8_t*)&beacon_ssid,sizeof(struct ssid));
+    memcpy(packet+reasso_radio.len+sizeof(struct dot11_header)+sizeof(struct reasso_fixed2)+sizeof(struct ssid),(uint8_t*)ssid,size);
+
+    /*
+    for(int i=0;i<*pk_size;i++)
+        printf("%02x",*(packet+i));
+    printf("\n");*/
+
+    return packet;
+
+
+}
