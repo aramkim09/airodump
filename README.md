@@ -1,3 +1,5 @@
+# prototype of bobNET
+https://github.com/team-234567/bobNET
 # Usage
 g++ -o airodump main.cpp dot11.cpp -lpcap -pthread  
 ./airodump wlan0
